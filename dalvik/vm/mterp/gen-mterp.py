@@ -61,8 +61,8 @@ def setHandlerStyle(tokens):
     if len(tokens) != 2:
         raise DataParseError("handler-style requires one argument")
     style = tokens[1]
-    if style != "computed-goto" and style != "jump-table" and style != "all-c":
-        raise DataParseError("handler-style (%s) invalid" % style)
+    if style not in ["computed-goto", "jump-table", "all-c"]:
+        raise DataParseError(f"handler-style ({style}) invalid")
 
 #
 # Parse arch config file --
@@ -104,8 +104,7 @@ def importFile(tokens):
     elif source.endswith(".S"):
         appendSourceFile(tokens[1], getGlobalSubDict(), asm_fp, None)
     else:
-        raise DataParseError("don't know how to import %s (expecting .cpp/.S)"
-                % source)
+        raise DataParseError(f"don't know how to import {source} (expecting .cpp/.S)")
 
 #
 # Parse arch config file --
@@ -202,8 +201,12 @@ def emitJmpTable(start_label, prefix):
         op = opcodes[i]
         dict = getGlobalSubDict()
         dict.update({ "opcode":op, "opnum":i })
-        asm_fp.write("    .long " + prefix + \
-                     "_%(opcode)s /* 0x%(opnum)02x */\n" % dict)
+        asm_fp.write(
+            (
+                f"    .long {prefix}"
+                + "_%(opcode)s /* 0x%(opnum)02x */\n" % dict
+            )
+        )
 
 #
 # Parse arch config file --
@@ -280,7 +283,7 @@ def loadAndEmitOpcodes():
     # point dvmAsmInstructionStart at the first handler or stub
     asm_fp.write("\n    .global %s\n" % start_label)
     asm_fp.write("    .type   %s, %%function\n" % start_label)
-    asm_fp.write("%s = " % start_label + label_prefix + "_OP_NOP\n")
+    asm_fp.write(f"{start_label} = {label_prefix}" + "_OP_NOP\n")
     asm_fp.write("    .text\n\n")
 
     for i in xrange(kNumPackedOpcodes):
@@ -352,12 +355,12 @@ def loadAndEmitAltOpcodes():
     asm_fp.write("\n    .global %s\n" % start_label)
     asm_fp.write("    .type   %s, %%function\n" % start_label)
     asm_fp.write("    .text\n\n")
-    asm_fp.write("%s = " % start_label + label_prefix + "_ALT_OP_NOP\n")
+    asm_fp.write(f"{start_label} = {label_prefix}" + "_ALT_OP_NOP\n")
 
     for i in xrange(kNumPackedOpcodes):
         op = opcodes[i]
         if alt_opcode_locations.has_key(op):
-            source = "%s/ALT_%s.S" % (alt_opcode_locations[op], op)
+            source = f"{alt_opcode_locations[op]}/ALT_{op}.S"
         else:
             source = default_alt_stub
         loadAndEmitAltStub(source, i)

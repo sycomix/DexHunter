@@ -80,8 +80,7 @@ def importFile(tokens):
     if source.endswith(".S"):
         appendSourceFile(tokens[1], getGlobalSubDict(), asm_fp, None)
     else:
-        raise DataParseError("don't know how to import %s (expecting .c/.S)"
-                % source)
+        raise DataParseError(f"don't know how to import {source} (expecting .c/.S)")
 
 #
 # Parse arch config file --
@@ -126,7 +125,7 @@ def opEntry(tokens):
     try:
         index = opcodes.index(tokens[1])
     except ValueError:
-        raise DataParseError("unknown opcode %s" % tokens[1])
+        raise DataParseError(f"unknown opcode {tokens[1]}")
     opcode_locations[tokens[1]] = tokens[2]
 
 #
@@ -151,15 +150,11 @@ def opEnd(tokens):
 #
 def getOpcodeList():
     opcodes = []
-    opcode_fp = open("%s/%s" % (target_arch, interp_defs_file))
-    opcode_re = re.compile(r"^JIT_TEMPLATE\((\w+)\)", re.DOTALL)
-    for line in opcode_fp:
-        match = opcode_re.match(line)
-        if not match:
-            continue
-        opcodes.append("TEMPLATE_" + match.group(1))
-    opcode_fp.close()
-
+    with open(f"{target_arch}/{interp_defs_file}") as opcode_fp:
+        opcode_re = re.compile(r"^JIT_TEMPLATE\((\w+)\)", re.DOTALL)
+        for line in opcode_fp:
+            if match := opcode_re.match(line):
+                opcodes.append(f"TEMPLATE_{match.group(1)}")
     return opcodes
 
 

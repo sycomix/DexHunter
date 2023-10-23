@@ -32,7 +32,6 @@ _NAMESPACES = {}
 def Confused(filename, line_number, line):
   sys.stderr.write('%s:%d: confused by:\n%s\n' % (filename, line_number, line))
   raise Exception("giving up!")
-  sys.exit(1)
 
 
 def ProcessFile(filename):
@@ -66,7 +65,7 @@ def ProcessFile(filename):
         continue
       m = re.compile(r'^\}\s+// namespace').search(raw_line)
       if m:
-        namespaces = namespaces[0:len(namespaces) - 1]
+        namespaces = namespaces[:-1]
         continue
 
       # Is this the start or end of an enclosing class or struct?
@@ -76,7 +75,7 @@ def ProcessFile(filename):
         continue
       m = re.compile(r'^\};').search(raw_line)
       if m:
-        enclosing_classes = enclosing_classes[0:len(enclosing_classes) - 1]
+        enclosing_classes = enclosing_classes[:-1]
         continue
 
       continue
@@ -84,16 +83,13 @@ def ProcessFile(filename):
     # Is this the end of the current enum?
     m = _ENUM_END_RE.search(raw_line)
     if m:
-      if not in_enum:
-        Confused(filename, line_number, raw_line)
       in_enum = False
       continue
 
     # The only useful thing in comments is the <<alternate text>> syntax for
     # overriding the default enum value names. Pull that out...
     enum_text = None
-    m_comment = re.compile(r'// <<(.*?)>>').search(raw_line)
-    if m_comment:
+    if m_comment := re.compile(r'// <<(.*?)>>').search(raw_line):
       enum_text = m_comment.group(1)
     # ...and then strip // comments.
     line = re.sub(r'//.*', '', raw_line)
@@ -113,15 +109,14 @@ def ProcessFile(filename):
     enum_value = m.group(1)
 
     # By default, we turn "kSomeValue" into "SomeValue".
-    if enum_text == None:
+    if enum_text is None:
       enum_text = enum_value
       if enum_text.startswith('k'):
         enum_text = enum_text[1:]
 
     # Lose literal values because we don't care; turn "= 123, // blah" into ", // blah".
     rest = m.group(2).strip()
-    m_literal = re.compile(r'= (0x[0-9a-f]+|-?[0-9]+|\'.\')').search(rest)
-    if m_literal:
+    if m_literal := re.compile(r'= (0x[0-9a-f]+|-?[0-9]+|\'.\')').search(rest):
       rest = rest[(len(m_literal.group(0))):]
 
     # With "kSomeValue = kOtherValue," we take the original and skip later synonyms.
